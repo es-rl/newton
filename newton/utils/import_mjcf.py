@@ -741,6 +741,7 @@ def parse_mjcf(
     # start articulation
 
     visual_shapes = []
+    sites = []
     start_shape_count = len(builder.shape_geo_type)
     builder.add_articulation(key=root.attrib.get("model"))
 

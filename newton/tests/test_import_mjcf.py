@@ -117,6 +117,41 @@ class TestImportMjcf(unittest.TestCase):
                 self.assertEqual(meshes[1].maxhullvert, 128)
                 self.assertEqual(meshes[2].maxhullvert, 64)  # Default value
 
+    def test_tendon_mjcf(self):
+        mjcf_content = """
+<mujoco>
+  <worldbody>
+    <geom type="capsule" pos="-.2 0 0" size="0.1 0.1" axisangle="0 1 0 90"/>
+    <site name="site0" pos="-.2 .0 .1"/>
+    <body>
+      <geom type="capsule" pos="0.21 0 0" size="0.1 0.1" axisangle="0 1 0 90"/>
+      <joint type="hinge" axis="0 1 0"/>
+      <site name="site1" pos=".2 .0 .1"/>
+    </body>
+  </worldbody>
+
+  <tendon>
+    <spatial name="spatial0">
+      <site site="site0"/>
+      <site site="site1"/>
+    </spatial>
+  </tendon>
+
+   <actuator>
+    <position name="spatial0" tendon="spatial0" kp="300" />
+   </actuator>
+</mujoco>
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mjcf_path = os.path.join(tmpdir, "test-tendon.xml")
+            with open(mjcf_path, "w") as f:
+                f.write(mjcf_content)
+
+            builder = newton.ModelBuilder()
+            newton.utils.parse_mjcf(mjcf_path, builder, parse_meshes=True)
+            model = builder.finalize()
+
+        self.assertTrue(model.shape_count == 2)
 
 if __name__ == "__main__":
     wp.clear_kernel_cache()

@@ -49,6 +49,7 @@ if __name__ == "__main__":
 
         builder = newton.ModelBuilder()
 
+        # dummy model for convenience
         newton.utils.parse_mjcf(
             mjcf_path,
             builder,
@@ -57,8 +58,14 @@ if __name__ == "__main__":
             enable_self_collisions=False,
         )
         model = builder.finalize()
+        # ripped from example_shadow_hand using the above mujoco config, necessary to apply control
         model.mjc_axis_to_actuator = wp.array(np.zeros((model.joint_dof_count,), dtype=np.int32) - 1, dtype=wp.int32)
         model.to_mjc_body_index = wp.array(np.ones(1, dtype=np.int32), dtype=wp.int32)
+
+        # try to actuate tendon, currently doesn't work
+        # model.joint_target = wp.array(np.ones(1, dtype=np.float32), dtype=wp.float32)
+        # model.joint_f = wp.array(np.ones(1, dtype=np.float32), dtype=wp.float32)
+
         state_0, state_1 =  model.state(), model.state()
         control = model.control()
         solver = newton.solvers.MuJoCoSolver(model, mjw_model=mjwm, mjw_data=mjwd)

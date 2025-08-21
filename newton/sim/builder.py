@@ -741,6 +741,20 @@ class ModelBuilder:
             "equality_constraint_polycoef",
             "equality_constraint_key",
             "equality_constraint_enabled",
+            "site_key",
+            "site_body",
+            "site_xform",
+            "tendon_key",
+            "tendon_type",
+            "tendon_site_ids",
+            "tendon_damping",
+            "tendon_stiffness",
+            "tendon_rest_length",
+            "tendon_actuator_tendon_id",
+            "tendon_actuator_key",
+            "tendon_actuator_ke",
+            "tendon_actuator_kd",
+            "tendon_actuator_force_range",
         ]
 
         for attr in more_builder_attrs:

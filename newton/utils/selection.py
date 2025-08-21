@@ -389,6 +389,7 @@ class ArticulationView:
         self.joint_coord_count = len(selected_joint_coord_ids)
         self.link_count = len(selected_link_ids)
         self.shape_count = len(selected_shape_ids)
+        self.spatial_tendon_count = len(selected_tendon_ids)
 
         # support custom slicing and indexing
         self._arti_joint_begin = int(arti_joint_begin)
@@ -728,6 +729,11 @@ class ArticulationView:
     def set_dof_forces(self, target: Control, values, mask=None):
         self._set_attribute_values("joint_f", target, values, mask=mask)
 
+    def set_spatial_tendon_properties(self, target: Control, stiffness, damping, limit_stiffness, offset, mask=None):
+        self._set_attribute_values("tendon_target", target, offset)
+
+    def get_spatial_tendon_offsets(self, source: Control):
+        return self._get_attribute_values("tendon_target", source)
     # ========================================================================================
     # Utilities
 

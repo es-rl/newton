@@ -695,6 +695,43 @@ def parse_usd(
         else:
             raise NotImplementedError(f"Unsupported joint type {key}")
 
+    def parse_tendon_sites(sites_dict):
+        nonlocal path_body_map
+        # find the leafs of a tendon by finding the only children who aren't parents
+        sites = set(sites_dict.keys())
+        site_parents = set()
+        for site in sites_dict.values():
+            if "parentAttachment" in site.keys():
+                site_parents.add(site["parentAttachment"])
+        tendon_leafs = sites-site_parents
+
+        # traverse all sites in a tendon, adding each to the model
+        for i, leaf in enumerate(tendon_leafs):
+            root_found = False
+
+            site_pos = sites_dict[leaf]["localPos"]
+            tendon_sites = [builder.add_site(
+                path_body_map[sites_dict[leaf]["body_path"]]-1,
+                builder.body_q[path_body_map[sites_dict[leaf]["body_path"]]] * wp.transform(wp.vec3(site_pos[0], site_pos[1], site_pos[2])),
+                leaf)]
+
+            curr_site = sites_dict[leaf]["parentAttachment"]
+            while root_found != True:
+                curr_site_pos = sites_dict[curr_site]["localPos"]
+                tendon_sites.append(builder.add_site(
+                    path_body_map[sites_dict[curr_site]["body_path"]]-1,
+                    builder.body_q[path_body_map[sites_dict[curr_site]["body_path"]]] * wp.transform(wp.vec3(curr_site_pos[0], curr_site_pos[1], curr_site_pos[2])),
+                    curr_site
+                ))
+
+                if "parentAttachment" in sites_dict[curr_site].keys():
+                    curr_site = sites_dict[curr_site]["parentAttachment"]
+                else:
+                    root_found = True
+                    tendon = builder.add_tendon(tendon_type="spatial", site_ids=tendon_sites, key="tendon{}".format(i))
+                    builder.add_tendon_actuator(tendon, ke=sites_dict[curr_site]["stiffness"],
+                                                kd=sites_dict[curr_site]["damping"], key="tendon{}_act".format(i))
+
     # Looking for and parsing the attributes on PhysicsScene prims
     scene_attributes = {}
     if UsdPhysics.ObjectType.Scene in ret_dict:
@@ -750,6 +787,8 @@ def parse_usd(
     articulation_bodies = {}
     articulation_roots = []
 
+    tendon_sites_info = {}
+
     # TODO: uniform interface for iterating
     def data_for_key(physics_utils_results, key):
         if key not in physics_utils_results:
@@ -793,6 +832,25 @@ def parse_usd(
                     density = d * mass_unit  # / (linear_unit**3)
                     body_density[body_path] = density
             # <--- Marking for deprecation
+
+            # accumulate all tendon site info in the scene in a single dict
+            # grabs attribute info instead of requiring Physx schema be present
+            # NOTE: does not take into account fixed tendons
+            sites = {}
+            for attrib in prim.GetAuthoredPropertiesInNamespace("physxTendon"):
+                split_name = attrib.SplitName()
+                if split_name[1] not in sites:
+                    sites[split_name[1]] = {}
+                    sites[split_name[1]]["body_path"] = body_path
+
+                # filter out relationships
+                if split_name[2] != "parentLink":
+                    sites[split_name[1]][split_name[2]] = attrib.Get()
+            for site in sites.keys():
+                if site not in tendon_sites_info:
+                    tendon_sites_info[site] = sites[site]
+                else:
+                    raise TypeError("Non-unique site name found in USD scene. This is incompatible with Mujoco")
 
     if UsdPhysics.ObjectType.Articulation in ret_dict:
         for key, value in ret_dict.items():
@@ -928,6 +986,8 @@ def parse_usd(
                 default=enable_self_collisions,
             )
             articulation_id += 1
+
+    parse_tendon_sites(tendon_sites_info)
 
     # insert remaining bodies that were not part of any articulation so far
     for path, rigid_body_desc in body_specs.items():

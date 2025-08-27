@@ -17,7 +17,6 @@ import os
 import unittest
 
 import numpy as np
-import warp as wp
 
 import newton
 
@@ -30,9 +29,8 @@ class TestEqualityConstraints(unittest.TestCase):
 
         builder = newton.ModelBuilder()
 
-        newton.utils.parse_mjcf(
+        builder.add_mjcf(
             os.path.join(os.path.dirname(__file__), "assets", "constraints.xml"),
-            builder,
             ignore_names=["floor", "ground"],
             up_axis="Z",
             skip_equality_constraints=False,
@@ -40,9 +38,9 @@ class TestEqualityConstraints(unittest.TestCase):
 
         self.model = builder.finalize()
 
-        self.solver = newton.solvers.MuJoCoSolver(
+        self.solver = newton.solvers.SolverMuJoCo(
             self.model,
-            use_mujoco=True,
+            use_mujoco_cpu=True,
             solver="newton",
             integrator="euler",
             iterations=100,
@@ -53,7 +51,7 @@ class TestEqualityConstraints(unittest.TestCase):
 
         self.control = self.model.control()
         self.state_0, self.state_1 = self.model.state(), self.model.state()
-        newton.sim.eval_fk(self.model, self.model.joint_q, self.model.joint_qd, self.state_0)
+        newton.eval_fk(self.model, self.model.joint_q, self.model.joint_qd, self.state_0)
 
         for _ in range(1000):
             for _ in range(10):
@@ -82,5 +80,4 @@ class TestEqualityConstraints(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    wp.clear_kernel_cache()
     unittest.main(verbosity=2)

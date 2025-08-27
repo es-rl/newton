@@ -12,10 +12,11 @@ Newton Physics
    :caption: User Guide
    
    Overview <guide/overview>
-   guide/quickstart
+   guide/installation
+   guide/visualization
    guide/key-concepts
    guide/tutorials
-   Conventions <conventions>
+   Development <guide/development>
 
 .. toctree::
    :maxdepth: 1
@@ -23,18 +24,21 @@ Newton Physics
    :caption: Concepts
    
    Articulations <concepts/articulations>
+   Conventions <concepts/conventions>
 
 .. toctree::
    :maxdepth: 1
    :hidden:
    :caption: API Reference
    
-   api/newton_core
+   api/newton
    api/newton_geometry
-   api/newton_sim
+   api/newton_ik
+   api/newton_selection
+   api/newton_sensors
    api/newton_solvers
    api/newton_utils
-
+   api/newton_viewer
 
 
 .. toctree::
@@ -42,9 +46,7 @@ Newton Physics
    :caption: Further Reading
 
    FAQ <faq>
-   Changelog <changelog>
    Migration Guide <migration>
-   Developer Guide <development-guide>
    Integrations <integrations/index>
 
 

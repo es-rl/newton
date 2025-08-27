@@ -3,4 +3,4 @@
 
 .. currentmodule:: newton.geometry
 
-.. autofunction:: transform_inertia
+.. autowarpfunc:: transform_inertia

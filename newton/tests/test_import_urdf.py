@@ -19,12 +19,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
-import warp as wp
 
 import newton
 import newton.examples
 from newton.tests.unittest_utils import assert_np_equal
-from newton.utils.import_urdf import parse_urdf
 
 MESH_URDF = """
 <robot name="mesh_test">
@@ -153,7 +151,7 @@ class TestImportUrdf(unittest.TestCase):
 
             # Parse the URDF file
             urdf_path = Path(temp_dir) / urdf_filename
-            parse_urdf(urdf_filename=str(urdf_path), builder=builder, up_axis="Y", **kwargs)
+            builder.add_urdf(str(urdf_path), up_axis="Y", **kwargs)
 
     def test_sphere_urdf(self):
         # load a urdf containing a sphere with r=0.5 and pos=(1.0,2.0,3.0)
@@ -177,7 +175,7 @@ class TestImportUrdf(unittest.TestCase):
                     def mock_mesh_download(dst, url: str):
                         dst.write(MESH_OBJ.encode("utf-8"))
 
-                    with patch("newton.utils.import_urdf._download_file", side_effect=mock_mesh_download):
+                    with patch("newton._src.utils.import_urdf._download_file", side_effect=mock_mesh_download):
                         self.parse_urdf(MESH_URDF.format(filename="http://example.com/cube.obj"), builder)
 
                 assert builder.shape_count == 1
@@ -225,7 +223,7 @@ class TestImportUrdf(unittest.TestCase):
 
         # Check joint was created with correct properties
         assert builder.joint_count == 2  # base joint + revolute
-        assert builder.joint_type[-1] == newton.JOINT_REVOLUTE
+        assert builder.joint_type[-1] == newton.JointType.REVOLUTE
 
         assert_np_equal(builder.joint_limit_lower[-1], np.array([-1.23]))
         assert_np_equal(builder.joint_limit_upper[-1], np.array([3.45]))
@@ -238,9 +236,8 @@ class TestImportUrdf(unittest.TestCase):
         builder.default_shape_cfg.mu = 789.0
         builder.default_joint_cfg.armature = 42.0
         urdf_filename = newton.examples.get_asset("cartpole.urdf")
-        newton.utils.parse_urdf(
+        builder.add_urdf(
             urdf_filename,
-            builder,
             floating=False,
         )
         self.assertTrue(all(np.array(builder.shape_material_ke) == 123.0))
@@ -251,5 +248,4 @@ class TestImportUrdf(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    wp.clear_kernel_cache()
     unittest.main(verbosity=2)

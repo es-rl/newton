@@ -11,7 +11,7 @@ The generated files live in ``docs/api/`` (git-ignored by default).
 
 Usage (from the repository root):
 
-    python tools/generate_api_rst.py
+    python docs/generate_api.py
 
 Adjust ``MODULES`` below to fit your project.
 """
@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import importlib
 import inspect
+import shutil
 import sys
 from pathlib import Path
 
@@ -34,7 +35,16 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 # Modules for which we want API pages.  Feel free to modify.
-MODULES: list[str] = ["newton.core", "newton.sim", "newton.geometry", "newton.solvers", "newton.utils"]
+MODULES: list[str] = [
+    "newton",
+    "newton.geometry",
+    "newton.ik",
+    "newton.selection",
+    "newton.sensors",
+    "newton.solvers",
+    "newton.utils",
+    "newton.viewer",
+]
 
 # Output directory (relative to repo root)
 OUTPUT_DIR = REPO_ROOT / "docs" / "api"
@@ -51,7 +61,7 @@ TOCTREE_DIR = "_generated"  # sub-folder inside OUTPUT_DIR
 def public_symbols(mod) -> list[str]:
     """Return the list of public names for *mod* (honours ``__all__``)."""
 
-    if hasattr(mod, "__all__") and isinstance(mod.__all__, (list, tuple)):
+    if hasattr(mod, "__all__") and isinstance(mod.__all__, list | tuple):
         return list(mod.__all__)
 
     def is_public(name: str) -> bool:
@@ -86,7 +96,7 @@ def write_module_page(mod_name: str) -> None:
         # ------------------------------------------------------------------
         # Constants / simple values
         # ------------------------------------------------------------------
-        if wp.types.type_is_value(type(attr)):
+        if wp.types.type_is_value(type(attr)) or isinstance(attr, str):
             constants.append(name)
             continue
 
@@ -115,21 +125,20 @@ def write_module_page(mod_name: str) -> None:
 
     lines.extend([f".. currentmodule:: {mod_name}", ""])
 
+    # Render a simple bullet list of submodules (no autosummary/toctree) to
+    # avoid generating stub pages that can cause duplicate descriptions.
     if modules:
-        lines.extend(
-            [
-                ".. rubric:: Submodules",
-                "",
-                ".. autosummary::",
-                f"   :toctree: {TOCTREE_DIR}",
-                "   :nosignatures:",
-                "",
-            ]
-        )
-        lines.extend([f"   {mod}" for mod in modules])
+        modules.sort()
+        lines.extend([".. rubric:: Submodules", ""])
+        # Link to sibling generated module pages without creating autosummary stubs.
+        for sub in modules:
+            modname = f"{mod_name}.{sub}"
+            docname = modname.replace(".", "_")
+            lines.append(f"- :doc:`{modname} <{docname}>`")
         lines.append("")
 
     if classes:
+        classes.sort()
         lines.extend(
             [
                 ".. rubric:: Classes",
@@ -144,6 +153,7 @@ def write_module_page(mod_name: str) -> None:
         lines.append("")
 
     if functions:
+        functions.sort()
         lines.extend(
             [
                 ".. rubric:: Functions",
@@ -158,6 +168,7 @@ def write_module_page(mod_name: str) -> None:
         lines.append("")
 
     if constants:
+        constants.sort()
         lines.extend(
             [
                 ".. rubric:: Constants",
@@ -198,6 +209,9 @@ def write_module_page(mod_name: str) -> None:
 # -----------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    # delete previously generated files
+    shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
     for mod in MODULES:
         write_module_page(mod)
     print("\nDone. Add docs/api/index.rst to your TOC or glob it in.")

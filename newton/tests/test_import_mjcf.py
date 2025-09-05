@@ -211,7 +211,6 @@ class TestImportMjcf(unittest.TestCase):
         # Verify that the rotation was actually applied (not just identity)
         assert not np.allclose(actual_inertia, original_inertia, atol=1e-6)
 
-<<<<<<< HEAD
     def test_site_parsing(self):
         """Test that sites are parsed from MJCF files"""
         mjcf_content = """<?xml version="1.0" encoding="utf-8"?>
@@ -235,7 +234,7 @@ class TestImportMjcf(unittest.TestCase):
 
             # Parse MJCF
             builder = newton.ModelBuilder()
-            newton.utils.parse_mjcf(mjcf_path, builder)
+            builder.add_mjcf(mjcf_path)
             model = builder.finalize()
 
             # Check sites were parsed
@@ -290,7 +289,7 @@ class TestImportMjcf(unittest.TestCase):
 
             # Parse MJCF
             builder = newton.ModelBuilder()
-            newton.utils.parse_mjcf(mjcf_path, builder)
+            builder.add_mjcf(mjcf_path)
             model = builder.finalize()
 
             # Check tendons were parsed
@@ -350,7 +349,7 @@ class TestImportMjcf(unittest.TestCase):
 
             # Parse MJCF
             builder = newton.ModelBuilder()
-            newton.utils.parse_mjcf(mjcf_path, builder)
+            builder.add_mjcf(mjcf_path)
             model = builder.finalize()
 
             # Check tendon actuator was parsed

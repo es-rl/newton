@@ -21,7 +21,7 @@ import warp as wp
 
 import newton
 import newton.examples
-from newton.utils.selection import ArticulationView
+from newton.selection import ArticulationView
 
 
 class TestTendonControl(unittest.TestCase):
@@ -59,9 +59,8 @@ class TestTendonControl(unittest.TestCase):
 
             # Parse with Newton
             builder = newton.ModelBuilder()
-            newton.utils.parse_mjcf(
+            builder.add_mjcf(
                 mjcf_path,
-                builder,
                 collapse_fixed_joints=True,
                 up_axis="Z",
                 enable_self_collisions=False,
@@ -90,7 +89,7 @@ class TestTendonControl(unittest.TestCase):
             control.tendon_target = wp.array(tendon_targets, dtype=wp.float32, device=model.device)
 
             # Create solver - let it handle MuJoCo model creation internally
-            solver = newton.solvers.MuJoCoSolver(model)
+            solver = newton.solvers.SolverMuJoCo(model)
 
             # Record initial joint position
             initial_joint_pos = state_0.joint_q.numpy()[0]
@@ -175,9 +174,8 @@ class TestTendonControl(unittest.TestCase):
 
             # Parse with Newton
             builder = newton.ModelBuilder()
-            newton.utils.parse_mjcf(
+            builder.add_mjcf(
                 mjcf_path,
-                builder,
                 collapse_fixed_joints=True,
                 up_axis="Z",
                 enable_self_collisions=False,
@@ -211,7 +209,7 @@ class TestTendonControl(unittest.TestCase):
             tendons.set_attribute("tendon_target", control, [[-1.0]])
 
             # Create solver - let it handle MuJoCo model creation internally
-            solver = newton.solvers.MuJoCoSolver(model)
+            solver = newton.solvers.SolverMuJoCo(model)
 
             # Record initial joint position
             initial_joint0_pos = state_0.joint_q.numpy()[0]

@@ -54,9 +54,8 @@ class Example:
 
         # Build model
         builder = newton.ModelBuilder()
-        newton.utils.parse_mjcf(
+        builder.add_mjcf(
             mjcf_path,
-            builder,
             collapse_fixed_joints=True,
             up_axis="Z",
             enable_self_collisions=False,
@@ -69,7 +68,7 @@ class Example:
         print(f"  Tendon actuators: {self.model.tendon_actuator_count}")
 
         # Create solver
-        self.solver = newton.solvers.MuJoCoSolver(self.model)
+        self.solver = newton.solvers.SolverMuJoCo(self.model)
         print("\nMuJoCo solver created successfully!")
 
         # Create states and control
@@ -79,7 +78,7 @@ class Example:
 
         # Create renderer
         if not headless:
-            self.renderer = newton.utils.SimRendererOpenGL(
+            self.renderer = newton.viewer.RendererOpenGL(
                 model=self.model,
                 path=stage_path,
                 scaling=1.0,
@@ -89,7 +88,7 @@ class Example:
                 camera_pos=(0, 1, 3),  # View from negative Y direction, looking at the pendulum
             )
         elif stage_path:
-            self.renderer = newton.utils.SimRendererUsd(self.model, stage_path)
+            self.renderer = newton.viewer.RendererUsd(self.model, stage_path)
         else:
             self.renderer = None
 

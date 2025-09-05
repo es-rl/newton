@@ -731,20 +731,19 @@ def parse_usd(
         for i, leaf in enumerate(tendon_leafs):
             root_found = False
 
-            site_pos = sites_dict[leaf]["localPos"]
-            tendon_sites = [builder.add_site(
-                path_body_map[sites_dict[leaf]["body_path"]]-1,
-                builder.body_q[path_body_map[sites_dict[leaf]["body_path"]]] * wp.transform(wp.vec3(site_pos[0], site_pos[1], site_pos[2])),
-                leaf)]
+            site_pos = wp.transform(wp.vec3(*sites_dict[leaf]["localPos"] if "localPos" in sites_dict[leaf] else [0,0,0]))
+            if path_body_map[sites_dict[leaf]["body_path"]] < 0:
+                site_pos =  builder.shape_transform[path_body_map[sites_dict[leaf]["body_path"]]+1] * site_pos
+
+            tendon_sites = [builder.add_site(path_body_map[sites_dict[leaf]["body_path"]], site_pos, leaf)]
 
             curr_site = sites_dict[leaf]["parentAttachment"]
-            while root_found != True:
-                curr_site_pos = sites_dict[curr_site]["localPos"]
-                tendon_sites.append(builder.add_site(
-                    path_body_map[sites_dict[curr_site]["body_path"]]-1,
-                    builder.body_q[path_body_map[sites_dict[curr_site]["body_path"]]] * wp.transform(wp.vec3(curr_site_pos[0], curr_site_pos[1], curr_site_pos[2])),
-                    curr_site
-                ))
+            while not root_found:
+                curr_site_pos = wp.transform(wp.vec3(*sites_dict[curr_site]["localPos"] if "localPos" in sites_dict[curr_site] else [0,0,0]))
+                if path_body_map[sites_dict[curr_site]["body_path"]] < 0:
+                    curr_site_pos = builder.shape_transform[path_body_map[sites_dict[leaf]["body_path"]]+1] * curr_site_pos
+                tendon_sites.append(
+                    builder.add_site(path_body_map[sites_dict[curr_site]["body_path"]], curr_site_pos, curr_site))
 
                 if "parentAttachment" in sites_dict[curr_site].keys():
                     curr_site = sites_dict[curr_site]["parentAttachment"]

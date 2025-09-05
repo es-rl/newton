@@ -2421,7 +2421,6 @@ class SolverMuJoCo(SolverBase):
         shape_mapping = shape_to_geom_idx  # Replace with actual indices
 
         with wp.ScopedDevice(model.device):
-<<<<<<< HEAD:newton/solvers/mujoco/solver_mujoco.py
             # mapping from Newton joint axis index to MJC actuator index
             model.mjc_axis_to_actuator = wp.array(axis_to_actuator, dtype=wp.int32)  # pyright: ignore[reportAttributeAccessIssue]
             # mapping from Newton tendon actuator index to MJC actuator index
@@ -2436,10 +2435,9 @@ class SolverMuJoCo(SolverBase):
                 [reverse_body_mapping[i] + 1 for i in range(1, len(reverse_body_mapping))],
                 dtype=wp.int32,
             )
-=======
+
             # create the MuJoCo Warp model
             self.mjw_model = mujoco_warp.put_model(self.mj_model)
->>>>>>> main:newton/_src/solvers/mujoco/solver_mujoco.py
 
             # build the geom index mappings now that we have the actual indices
             geom_to_shape_idx_np = np.full((self.mj_model.ngeom,), -1, dtype=np.int32)

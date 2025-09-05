@@ -750,8 +750,9 @@ def parse_usd(
                 else:
                     root_found = True
                     tendon = builder.add_tendon(tendon_type="spatial", site_ids=tendon_sites, key="tendon{}".format(i))
-                    builder.add_tendon_actuator(tendon, ke=sites_dict[curr_site]["stiffness"],
-                                                kd=sites_dict[curr_site]["damping"], key="tendon{}_act".format(i))
+                    stiffness = sites_dict[curr_site]["stiffness"] if "stiffness" in sites_dict[curr_site] else 0.0
+                    damping = sites_dict[curr_site]["damping"] if "damping" in sites_dict[curr_site] else 0.0
+                    builder.add_tendon_actuator(tendon, ke=stiffness, kd=damping, key="tendon{}_act".format(i))
 
     # Looking for and parsing the attributes on PhysicsScene prims
     scene_attributes = {}

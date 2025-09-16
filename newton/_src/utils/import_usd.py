@@ -725,34 +725,41 @@ def parse_usd(
         for site in sites_dict.values():
             if "parentAttachment" in site.keys():
                 site_parents.add(site["parentAttachment"])
-        tendon_leafs = sites-site_parents
+        tendon_leafs = sites - site_parents
 
         # traverse all sites in a tendon, adding each to the model
         for i, leaf in enumerate(tendon_leafs):
             root_found = False
 
-            site_pos = wp.transform(wp.vec3(*sites_dict[leaf]["localPos"] if "localPos" in sites_dict[leaf] else [0,0,0]))
+            site_pos = wp.transform(
+                wp.vec3(*sites_dict[leaf]["localPos"] if "localPos" in sites_dict[leaf] else [0, 0, 0])
+            )
             if path_body_map[sites_dict[leaf]["body_path"]] < 0:
-                site_pos =  builder.shape_transform[path_body_map[sites_dict[leaf]["body_path"]]+1] * site_pos
+                site_pos = builder.shape_transform[path_body_map[sites_dict[leaf]["body_path"]] + 1] * site_pos
 
             tendon_sites = [builder.add_site(path_body_map[sites_dict[leaf]["body_path"]], site_pos, leaf)]
 
             curr_site = sites_dict[leaf]["parentAttachment"]
             while not root_found:
-                curr_site_pos = wp.transform(wp.vec3(*sites_dict[curr_site]["localPos"] if "localPos" in sites_dict[curr_site] else [0,0,0]))
+                curr_site_pos = wp.transform(
+                    wp.vec3(*sites_dict[curr_site]["localPos"] if "localPos" in sites_dict[curr_site] else [0, 0, 0])
+                )
                 if path_body_map[sites_dict[curr_site]["body_path"]] < 0:
-                    curr_site_pos = builder.shape_transform[path_body_map[sites_dict[leaf]["body_path"]]+1] * curr_site_pos
+                    curr_site_pos = (
+                        builder.shape_transform[path_body_map[sites_dict[leaf]["body_path"]] + 1] * curr_site_pos
+                    )
                 tendon_sites.append(
-                    builder.add_site(path_body_map[sites_dict[curr_site]["body_path"]], curr_site_pos, curr_site))
+                    builder.add_site(path_body_map[sites_dict[curr_site]["body_path"]], curr_site_pos, curr_site)
+                )
 
                 if "parentAttachment" in sites_dict[curr_site].keys():
                     curr_site = sites_dict[curr_site]["parentAttachment"]
                 else:
                     root_found = True
-                    tendon = builder.add_tendon(tendon_type="spatial", site_ids=tendon_sites, key="tendon{}".format(i))
+                    tendon = builder.add_tendon(tendon_type="spatial", site_ids=tendon_sites, key=f"tendon{i}")
                     stiffness = sites_dict[curr_site]["stiffness"] if "stiffness" in sites_dict[curr_site] else 0.0
                     damping = sites_dict[curr_site]["damping"] if "damping" in sites_dict[curr_site] else 0.0
-                    builder.add_tendon_actuator(tendon, ke=stiffness, kd=damping, key="tendon{}_act".format(i))
+                    builder.add_tendon_actuator(tendon, ke=stiffness, kd=damping, key=f"tendon{i}_act")
 
     # Looking for and parsing the attributes on PhysicsScene prims
     scene_attributes = {}
@@ -1343,7 +1350,7 @@ def parse_usd(
 
             builder = multi_env_builder
 
-    parse_tendon_sites(tendon_sites_info) # do this after collapsing path_body_map
+    parse_tendon_sites(tendon_sites_info)  # do this after collapsing path_body_map
 
     return {
         "fps": stage.GetFramesPerSecond(),

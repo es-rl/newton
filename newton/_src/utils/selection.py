@@ -819,6 +819,7 @@ class ArticulationView:
 
     def get_spatial_tendon_offsets(self, source: Control):
         return self._get_attribute_values("tendon_target", source)
+
     # ========================================================================================
     # Utilities
 

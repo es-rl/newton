@@ -732,6 +732,5 @@ class TestImportMjcf(unittest.TestCase):
         np.testing.assert_allclose(leaf2_quat, expected_leaf2_xform.q, atol=1e-6)
 
 
-
 if __name__ == "__main__":
     unittest.main(verbosity=2)

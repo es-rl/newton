@@ -661,7 +661,7 @@ class TestImportUsd(unittest.TestCase):
         builder = newton.ModelBuilder()
 
         results = builder.add_usd(
-            os.path.join(os.path.dirname(__file__), "assets", "shadow_hand_spatial_tendons.usda"),
+            os.path.join(os.path.dirname(__file__), "assets", "spatial_shadow_hand.usd"),
             collapse_fixed_joints=True,
         )
         self.assertEqual(builder.body_count, 24)

@@ -2424,10 +2424,6 @@ class SolverMuJoCo(SolverBase):
 
             add_geoms(child)
 
-<<<<<<< HEAD
-        for i, constraint_type in enumerate(eq_constraint_type):
-            if constraint_type == EqType.CONNECT:
-=======
         # -----------------------
         # add sites to MuJoCo bodies
 
@@ -2527,7 +2523,6 @@ class SolverMuJoCo(SolverBase):
 
         for i, typ in enumerate(eq_constraint_type):
             if typ == EqType.CONNECT:
->>>>>>> 520-add-support-for-parsing-physx-spatial-tendons-from-usd-for-integration-testing
                 eq = spec.add_equality(objtype=mujoco.mjtObj.mjOBJ_BODY)
                 eq.type = mujoco.mjtEq.mjEQ_CONNECT
                 eq.active = eq_constraint_enabled[i]

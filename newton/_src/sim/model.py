@@ -68,6 +68,7 @@ class ModelAttributeFrequency(IntEnum):
     """Attribute frequency follows the number of shapes (see :attr:`~newton.Model.shape_count`)."""
     ARTICULATION = 5
     """Attribute frequency follows the number of articulations (see :attr:`~newton.Model.articulation_count`)."""
+    TENDON = 6
 
 
 class AttributeNamespace:
@@ -604,14 +605,14 @@ class Model:
         self.attribute_frequency["shape_filter"] = ModelAttributeFrequency.SHAPE
 
         # attributes per tendon
-        self.attribute_frequency["tendon_damping"] = "tendon"
-        self.attribute_frequency["tendon_stiffness"] = "tendon"
-        self.attribute_frequency["tendon_rest_length"] = "tendon"
-        self.attribute_frequency["tendon_type"] = "tendon"
-        self.attribute_frequency["tendon_target"] = "tendon"
-        self.attribute_frequency["tendon_actuator_kp"] = "tendon"
-        self.attribute_frequency["tendon_actuator_kv"] = "tendon"
-        self.attribute_frequency["tendon_actuator_force_range"] = "tendon"
+        self.attribute_frequency["tendon_damping"] = ModelAttributeFrequency.TENDON
+        self.attribute_frequency["tendon_stiffness"] = ModelAttributeFrequency.TENDON
+        self.attribute_frequency["tendon_rest_length"] = ModelAttributeFrequency.TENDON
+        self.attribute_frequency["tendon_type"] = ModelAttributeFrequency.TENDON
+        self.attribute_frequency["tendon_target"] = ModelAttributeFrequency.TENDON
+        self.attribute_frequency["tendon_actuator_kp"] = ModelAttributeFrequency.TENDON
+        self.attribute_frequency["tendon_actuator_kv"] = ModelAttributeFrequency.TENDON
+        self.attribute_frequency["tendon_actuator_force_range"] = ModelAttributeFrequency.TENDON
 
     def state(self, requires_grad: bool | None = None) -> State:
         """
@@ -690,6 +691,10 @@ class Model:
             c.muscle_activations = self.muscle_activations
             c.tendon_target = self.tendon_target
 
+        # attach custom attributes with assignment==CONTROL
+        self._add_custom_attributes(
+            c, ModelAttributeAssignment.CONTROL, requires_grad=requires_grad, clone_arrays=clone_variables
+        )
         return c
 
     def set_gravity(self, gravity: tuple[float, float, float] | list[float] | wp.vec3) -> None:

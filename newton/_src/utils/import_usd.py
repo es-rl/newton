@@ -863,65 +863,49 @@ def parse_usd(
         else:
             raise NotImplementedError(f"Unsupported joint type {key}")
 
-        # map the joint path to the index at insertion time
-        path_joint_map[str(joint_path)] = joint_index
+    def parse_tendon_sites(sites_dict):
+        nonlocal path_body_map
+        # find the leafs of a tendon by finding the only children who aren't parents
+        sites = set(sites_dict.keys())
+        site_parents = set()
+        for site in sites_dict.values():
+            if "parentAttachment" in site.keys():
+                site_parents.add(site["parentAttachment"])
+        tendon_leafs = sites - site_parents
 
-        # Apply saved initial joint state after joint creation
-        if key in (UsdPhysics.ObjectType.RevoluteJoint, UsdPhysics.ObjectType.PrismaticJoint):
-            # Use the initial values we saved before CreateAttribute overwrote them
-            if initial_position is not None:
-                q_start = builder.joint_q_start[joint_index]
-                if key == UsdPhysics.ObjectType.RevoluteJoint:
-                    builder.joint_q[q_start] = initial_position * DegreesToRadian
-                else:
-                    builder.joint_q[q_start] = initial_position
-                if verbose:
-                    joint_type_str = "revolute" if key == UsdPhysics.ObjectType.RevoluteJoint else "prismatic"
-                    print(
-                        f"Set {joint_type_str} joint {joint_index} position to {initial_position} ({'rad' if key == UsdPhysics.ObjectType.RevoluteJoint else 'm'})"
+        # traverse all sites in a tendon, adding each to the model
+        for i, leaf in enumerate(tendon_leafs):
+            root_found = False
+
+            site_pos = wp.transform(
+                wp.vec3(*sites_dict[leaf]["localPos"] if "localPos" in sites_dict[leaf] else [0, 0, 0])
+            )
+            if path_body_map[sites_dict[leaf]["body_path"]] < 0:
+                site_pos = builder.shape_transform[path_body_map[sites_dict[leaf]["body_path"]] + 1] * site_pos
+
+            tendon_sites = [builder.add_site(path_body_map[sites_dict[leaf]["body_path"]], site_pos, leaf)]
+
+            curr_site = sites_dict[leaf]["parentAttachment"]
+            while not root_found:
+                curr_site_pos = wp.transform(
+                    wp.vec3(*sites_dict[curr_site]["localPos"] if "localPos" in sites_dict[curr_site] else [0, 0, 0])
+                )
+                if path_body_map[sites_dict[curr_site]["body_path"]] < 0:
+                    curr_site_pos = (
+                        builder.shape_transform[path_body_map[sites_dict[leaf]["body_path"]] + 1] * curr_site_pos
                     )
-            if initial_velocity is not None:
-                qd_start = builder.joint_qd_start[joint_index]
-                if key == UsdPhysics.ObjectType.RevoluteJoint:
-                    builder.joint_qd[qd_start] = initial_velocity  # velocity is already in rad/s
+                tendon_sites.append(
+                    builder.add_site(path_body_map[sites_dict[curr_site]["body_path"]], curr_site_pos, curr_site)
+                )
+
+                if "parentAttachment" in sites_dict[curr_site].keys():
+                    curr_site = sites_dict[curr_site]["parentAttachment"]
                 else:
-                    builder.joint_qd[qd_start] = initial_velocity
-                if verbose:
-                    joint_type_str = "revolute" if key == UsdPhysics.ObjectType.RevoluteJoint else "prismatic"
-                    print(f"Set {joint_type_str} joint {joint_index} velocity to {initial_velocity} rad/s")
-        elif key == UsdPhysics.ObjectType.D6Joint:
-            # Apply D6 joint initial state
-            q_start = builder.joint_q_start[joint_index]
-            qd_start = builder.joint_qd_start[joint_index]
-
-            # Get joint coordinate and DOF ranges
-            if joint_index + 1 < len(builder.joint_q_start):
-                q_end = builder.joint_q_start[joint_index + 1]
-                qd_end = builder.joint_qd_start[joint_index + 1]
-            else:
-                q_end = len(builder.joint_q)
-                qd_end = len(builder.joint_qd)
-
-            # Apply initial values for each axis that was actually added as a DOF
-            for dof_idx, axis_name in enumerate(d6_dof_axes):
-                if dof_idx >= (qd_end - qd_start):
-                    break
-
-                is_rot = axis_name.startswith("rot")
-                pos = d6_initial_positions.get(axis_name)
-                vel = d6_initial_velocities.get(axis_name)
-
-                if pos is not None and q_start + dof_idx < q_end:
-                    coord_val = pos * DegreesToRadian if is_rot else pos
-                    builder.joint_q[q_start + dof_idx] = coord_val
-                    if verbose:
-                        print(f"Set D6 joint {joint_index} {axis_name} position to {pos} ({'deg' if is_rot else 'm'})")
-
-                if vel is not None and qd_start + dof_idx < qd_end:
-                    vel_val = vel  # D6 velocities are already in correct units
-                    builder.joint_qd[qd_start + dof_idx] = vel_val
-                    if verbose:
-                        print(f"Set D6 joint {joint_index} {axis_name} velocity to {vel} rad/s")
+                    root_found = True
+                    tendon = builder.add_tendon(tendon_type="spatial", site_ids=tendon_sites, key=f"tendon{i}")
+                    stiffness = sites_dict[curr_site]["stiffness"] if "stiffness" in sites_dict[curr_site] else 0.0
+                    damping = sites_dict[curr_site]["damping"] if "damping" in sites_dict[curr_site] else 0.0
+                    builder.add_tendon_actuator(tendon, ke=stiffness, kd=damping, key=f"tendon{i}_act")
 
     # Looking for and parsing the attributes on PhysicsScene prims
     scene_attributes = {}
@@ -1013,6 +997,8 @@ def parse_usd(
     articulation_bodies = {}
     articulation_roots = []
 
+    tendon_sites_info = {}
+
     # TODO: uniform interface for iterating
     def data_for_key(physics_utils_results, key):
         if key not in physics_utils_results:
@@ -1072,6 +1058,25 @@ def parse_usd(
                     density = d * mass_unit  # / (linear_unit**3)
                     body_density[body_path] = density
             # <--- Marking for deprecation
+
+            # accumulate all tendon site info in the scene in a single dict
+            # grabs attribute info instead of requiring Physx schema be present
+            # NOTE: does not take into account fixed tendons
+            sites = {}
+            for attrib in prim.GetAuthoredPropertiesInNamespace("physxTendon"):
+                split_name = attrib.SplitName()
+                if split_name[1] not in sites:
+                    sites[split_name[1]] = {}
+                    sites[split_name[1]]["body_path"] = body_path
+
+                # filter out relationships
+                if split_name[2] != "parentLink":
+                    sites[split_name[1]][split_name[2]] = attrib.Get()
+            for site in sites.keys():
+                if site not in tendon_sites_info:
+                    tendon_sites_info[site] = sites[site]
+                else:
+                    raise TypeError("Non-unique site name found in USD scene. This is incompatible with Mujoco")
 
     # maps from articulation_id to bool indicating if self-collisions are enabled
     articulation_has_self_collision = {}
@@ -1687,7 +1692,8 @@ def parse_usd(
 
             builder = multi_world_builder
 
-    solver_specific_attrs = R.get_solver_specific_attrs() if collect_solver_specific_attrs else {}
+    parse_tendon_sites(tendon_sites_info)  # do this after collapsing path_body_map
+
     return {
         "fps": stage.GetFramesPerSecond(),
         "duration": stage.GetEndTimeCode() - stage.GetStartTimeCode(),

@@ -135,6 +135,8 @@ def parse_usd(
             * - "path_original_body_map"
               - Mapping from prim path to original body index before `collapse_fixed_joints`
     """
+    solver_specific_attrs = {}
+    
     # default schema resolvers (avoid mutable default argument)
     if schema_resolvers is None:
         schema_resolvers = [SchemaResolverNewton()]

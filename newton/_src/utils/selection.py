@@ -20,6 +20,8 @@ from typing import Any
 import warp as wp
 from warp.types import is_array
 
+import ipdb
+
 from ..sim import Control, JointType, Model, State, eval_fk
 from ..sim.model import ModelAttributeFrequency
 
@@ -526,6 +528,8 @@ class ArticulationView:
         )
 
         if verbose:
+            print(f"[DEBUG] frequency indices: {self._frequency_indices}")
+            print(f"[DEBUG] tendon IDs: {wp.array(selected_tendon_ids, dtype=int, device=self.device)}")
             print(f"Articulation '{pattern}': {self.count}")
             print(f"  Link count:     {self.link_count} ({'strided' if self.links_contiguous else 'indexed'})")
             print(f"  Shape count:    {self.shape_count} ({'strided' if self.shapes_contiguous else 'indexed'})")
@@ -603,10 +607,13 @@ class ArticulationView:
             else:
                 attrib = attrib[:, _slice]
         else:
+            ipdb.set_trace()
             # create indexed array + contiguous staging array
             _indices = self._frequency_indices.get(frequency)
             if _indices is None:
-                raise AttributeError(f"Unable to determine the frequency of attribute '{name}'")
+                # TODO sort out why _indices is None (manually setting it for now)
+                print(f"[WARN] Unable to determine the frequency of attribute '{name}'")
+                _indices = wp.array(range(attrib.shape[1]), dtype=wp.int32, device=attrib.device)
             attrib = wp.indexedarray(attrib, [None, _indices])
             attrib._staging_array = wp.empty_like(attrib)
 
